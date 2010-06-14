@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using Voldemort.Protocol;
 
 namespace Voldemort
 {
@@ -50,11 +51,10 @@ namespace Voldemort
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    Stream sstream = conn.get_io_stream();
-                    request.writeGetRequest(sstream, this.Name, key, this.ShouldReroute);
-                    sstream.Flush();
+                    request.writeGetRequest(conn.Stream, this.Name, key, this.ShouldReroute);
+                    conn.Stream.Flush();
 
-                    return request.readGetResponse(sstream);
+                    return request.readGetResponse(conn.Stream);
                 }
             }
             catch (UnreachableStoreException ex)
@@ -70,16 +70,15 @@ namespace Voldemort
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    Stream sstream = conn.get_io_stream();
-                    request.writePutRequest(sstream, 
+                    request.writePutRequest(conn.Stream, 
                         this.Name, 
                         key, 
                         value.value, 
                         (VectorClock)value.version, 
                         this.ShouldReroute);
-                    sstream.Flush();
+                    conn.Stream.Flush();
 
-                    request.readPutResponse(sstream);
+                    request.readPutResponse(conn.Stream);
                 }
             }
             catch (UnreachableStoreException ex)
@@ -95,15 +94,14 @@ namespace Voldemort
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    Stream sstream = conn.get_io_stream();
-                    request.writeDeleteRequest(sstream,
+                    request.writeDeleteRequest(conn.Stream,
                         this.Name,
                         key,
                         version.version,
                         this.ShouldReroute);
-                    sstream.Flush();
+                    conn.Stream.Flush();
 
-                    return request.readDeleteResponse(sstream);
+                    return request.readDeleteResponse(conn.Stream);
                 }
             }
             catch (UnreachableStoreException ex)
@@ -120,23 +118,19 @@ namespace Voldemort
             
         }
 
-        #region Store Members
-
-
         public IList<KeyedVersions> getAll(IEnumerable<byte[]> keys)
         {
             try
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    Stream sstream = conn.get_io_stream();
-                    request.writeGetAllRequest(sstream,
+                    request.writeGetAllRequest(conn.Stream,
                         this.Name,
                         keys,
                         this.ShouldReroute);
-                    sstream.Flush();
+                    conn.Stream.Flush();
 
-                    return request.readGetAllResponse(sstream);
+                    return request.readGetAllResponse(conn.Stream);
                 }
             }
             catch (UnreachableStoreException ex)
@@ -145,7 +139,5 @@ namespace Voldemort
                 throw new UnreachableStoreException("Failure to get " + Host);
             }
         }
-
-        #endregion
     }
 }

@@ -1,8 +1,12 @@
-﻿using System;
+﻿#define LOG4NET
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using System.Reflection;
+#if(LOG4NET)
+using log4net;
+#endif
 namespace Voldemort
 {
     sealed class Logger

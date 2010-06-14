@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voldemort", "Voldemort\Vold
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voldemort.TestConsole", "Voldemort.TestConsole\Voldemort.TestConsole.csproj", "{65593334-D122-4CF5-8DB4-FAE1D87744A7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voldemort.Test", "Voldemort.Test\Voldemort.Test.csproj", "{E83DF2EB-B05C-4CA1-B3AB-3A15661091E7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{65593334-D122-4CF5-8DB4-FAE1D87744A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65593334-D122-4CF5-8DB4-FAE1D87744A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65593334-D122-4CF5-8DB4-FAE1D87744A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E83DF2EB-B05C-4CA1-B3AB-3A15661091E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E83DF2EB-B05C-4CA1-B3AB-3A15661091E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E83DF2EB-B05C-4CA1-B3AB-3A15661091E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E83DF2EB-B05C-4CA1-B3AB-3A15661091E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Voldemort.Model;
+
 
 namespace Voldemort
 {
@@ -124,7 +126,7 @@ namespace Voldemort
 
             foreach (Node node in availableNodes)
             {
-                status = doGetFromStore(key, node, _clusterMap[node.Id], out result);
+                status = doGetFromStore(key, node, _clusterMap[node.ID], out result);
 
                 if (status)
                     return result;
@@ -132,7 +134,7 @@ namespace Voldemort
 
             foreach (Node node in _cluster.NodeMap.Values)
             {
-                status = doGetFromStore(key, node, _clusterMap[node.Id], out result);
+                status = doGetFromStore(key, node, _clusterMap[node.ID], out result);
 
                 if (status)
                     return result;
@@ -149,7 +151,7 @@ namespace Voldemort
             IList<Node> availableNodes = Node.GetAvailableNodes(prefList);
             foreach (Node node in availableNodes)
             {
-                status = doPutFromStore(key, value, node, _clusterMap[node.Id]);
+                status = doPutFromStore(key, value, node, _clusterMap[node.ID]);
 
                 if (status)
                     return;
@@ -157,7 +159,7 @@ namespace Voldemort
 
             foreach (Node node in _cluster.NodeMap.Values)
             {
-                status = doPutFromStore(key, value, node, _clusterMap[node.Id]);
+                status = doPutFromStore(key, value, node, _clusterMap[node.ID]);
 
                 if (status)
                     return;
@@ -174,7 +176,7 @@ namespace Voldemort
             IList<Node> availableNodes = Node.GetAvailableNodes(prefList);
             foreach (Node node in availableNodes)
             {
-                status = doDeleteFromStore(key, version, node, _clusterMap[node.Id], out result);
+                status = doDeleteFromStore(key, version, node, _clusterMap[node.ID], out result);
 
                 if (status)
                     return result;
@@ -182,7 +184,7 @@ namespace Voldemort
 
             foreach (Node node in _cluster.NodeMap.Values)
             {
-                status = doDeleteFromStore(key, version, node, _clusterMap[node.Id], out result);
+                status = doDeleteFromStore(key, version, node, _clusterMap[node.ID], out result);
 
                 if (status)
                     return result;
@@ -251,7 +253,7 @@ namespace Voldemort
                 }
 
 
-                bool success = doGetAllFromStore(keysToRequest, kvp.Key, _clusterMap[kvp.Key.Id], out foundVersions);
+                bool success = doGetAllFromStore(keysToRequest, kvp.Key, _clusterMap[kvp.Key.ID], out foundVersions);
 
                 if (success)
                 {

@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Voldemort.Model;
+using Voldemort.Protocol;
 
 namespace Voldemort
 {
     public class SocketStoreClientFactory : StoreClientFactory
     {
-        const string METADATA_STORE_NAME = "metadata";
-        static readonly byte[] CLUSTER_KEY = Encoding.UTF8.GetBytes("cluster.xml");
-        //const string CLUSTER_KEY = "cluster.xml";
-        const string STORES_KEY = "stores.xml";
-        const string ROLLBACK_CLUSTER_KEY = "rollback.cluster.xml";
+        private const string METADATA_STORE_NAME = "metadata";
+        private const string STORES_KEY = "stores.xml";
+        private const string ROLLBACK_CLUSTER_KEY = "rollback.cluster.xml";
+
+        private static readonly byte[] CLUSTER_KEY = Encoding.UTF8.GetBytes("cluster.xml");
 
         private static readonly Logger log = new Logger();
         private ClientConfig _Config;
@@ -45,15 +47,15 @@ namespace Voldemort
 
             
             Versioned clustervv = bootstrapMetadata(CLUSTER_KEY);
-            string clusterXml = Encoding.UTF8.GetString(clustervv.value);
 
-            Cluster cluster = new Cluster(clusterXml);
+            Cluster cluster = Cluster.Load(clustervv.value);
+
             IDictionary<int, Store> clusterMap = new Dictionary<int, Store>();
             IDictionary<int, Node> nodeMap = cluster.NodeMap;
             foreach (Node node in nodeMap.Values)
             {
                 Store store = getStore(storeName, node.Host, node.SocketPort, _RequestFormatType, true);
-                clusterMap.Add(node.Id, store);
+                clusterMap.Add(node.ID, store);
             }
 
             RoutingStrategy routingStrategy = new RoundRobinRoutingStrategy(_Config, cluster);
