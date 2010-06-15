@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml.Serialization;
+using System.IO;
 
 namespace Voldemort.Model
 {
@@ -45,7 +46,7 @@ namespace Voldemort.Model
             }
         }
 
-        public static Cluster Load(System.IO.Stream stream)
+        public static Cluster Load(Stream stream)
         {
             if (null == stream) throw new ArgumentNullException("stream", "stream cannot be null.");
             
@@ -53,6 +54,26 @@ namespace Voldemort.Model
             cluster.afterDeserialize();
             return cluster;
         }
+
+        public static void Save(Cluster cluster, string FilePath)
+        {
+            if (null == cluster) throw new ArgumentNullException("cluster", "cluster cannot be null.");
+            if (string.IsNullOrEmpty(FilePath)) throw new ArgumentNullException("FilePath", "FilePath cannot be null.");
+
+            using (System.IO.FileStream iostr = new System.IO.FileStream(FilePath, FileMode.Create, FileAccess.Write))
+            {
+                Save(cluster, iostr);
+            }
+        }
+
+        public static void Save(Cluster cluster, Stream stream)
+        {
+            if (null == cluster) throw new ArgumentNullException("cluster", "cluster cannot be null.");
+            if (null == stream) throw new ArgumentNullException("stream", "stream cannot be null.");
+            Serializer.Serialize(stream, cluster);
+        }
+
+
 
         public Node this[int ID]
         {
@@ -97,5 +118,7 @@ namespace Voldemort.Model
 
             _NodeLookup = nodeLookup;
         }
+
+
     }
 }

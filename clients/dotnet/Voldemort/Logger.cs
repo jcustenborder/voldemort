@@ -9,7 +9,7 @@ using log4net;
 #endif
 namespace Voldemort
 {
-    sealed class Logger
+    public sealed class Logger
     {
         private readonly Type _Type;
 #if(LOG4NET)
@@ -673,5 +673,25 @@ namespace Voldemort
         }
         #endregion
 #endif
+
+        const string LAYOUTFORMAT = "%date [%thread] %-5level %logger [%property{NDC}] - %message%newline";
+
+        public static void ConfigureForConsoleDebug()
+        {
+            log4net.Appender.ConsoleAppender appender = new log4net.Appender.ConsoleAppender();
+            appender.Layout = new log4net.Layout.PatternLayout(LAYOUTFORMAT);
+            log4net.Config.BasicConfigurator.Configure(appender);
+        }
+
+        /// <summary>
+        /// Method is used to configure the logging framework 
+        /// to write to trace. This will be picked up by nunit.
+        /// </summary>
+        public static void ConfigureForUnitTesting()
+        {
+            log4net.Appender.TraceAppender appender = new log4net.Appender.TraceAppender();
+            appender.Layout = new log4net.Layout.PatternLayout(LAYOUTFORMAT);
+            log4net.Config.BasicConfigurator.Configure(appender);
+        }
     }
 }

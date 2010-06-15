@@ -16,6 +16,10 @@ namespace Voldemort.Model
         public int HttpPort { get; set; }
         [XmlElement("socket-port")]
         public int SocketPort { get; set; }
+        
+        [XmlElement("admin-port")]
+        public int AdminPort { get; set; }
+
         [XmlElement("partitions")]
         public string PartitionsValue { get; set; }
 

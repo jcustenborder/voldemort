@@ -3,6 +3,6 @@
     <StartArguments>tcp://192.168.1.199:6666</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <StartArguments>tcp://192.168.1.253:6666</StartArguments>
+    <StartArguments>tcp://wsm-deb2:6666</StartArguments>
   </PropertyGroup>
 </Project>
