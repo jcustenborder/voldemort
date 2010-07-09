@@ -47,7 +47,6 @@ import voldemort.utils.ByteArray;
  * A {@link voldemort.client.StoreClientFactory StoreClientFactory} that creates
  * a remote client that connects and bootstraps itself via HTTP.
  * 
- * @author jay
  * 
  */
 public class HttpStoreClientFactory extends AbstractStoreClientFactory {
@@ -102,12 +101,7 @@ public class HttpStoreClientFactory extends AbstractStoreClientFactory {
     @Override
     protected FailureDetector initFailureDetector(final ClientConfig config,
                                                   final Collection<Node> nodes) {
-        ClientStoreVerifier<ByteArray, byte[]> storeVerifier = new ClientStoreVerifier<ByteArray, byte[]>() {
-
-            @Override
-            protected ByteArray getKey() {
-                return new ByteArray(MetadataStore.NODE_ID_KEY.getBytes());
-            }
+        ClientStoreVerifier storeVerifier = new ClientStoreVerifier() {
 
             @Override
             protected Store<ByteArray, byte[]> getStoreInternal(Node node) {

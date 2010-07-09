@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Properties;
 
 import voldemort.client.protocol.RequestFormatType;
-import voldemort.cluster.failuredetector.BannagePeriodFailureDetector;
 import voldemort.cluster.failuredetector.FailureDetectorConfig;
 import voldemort.store.bdb.BdbStorageConfiguration;
 import voldemort.store.memory.CacheStorageConfiguration;
@@ -42,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * Configuration parameters for the voldemort server.
  * 
- * @author jay
  * 
  */
 public class VoldemortConfig implements Serializable {
@@ -89,6 +87,7 @@ public class VoldemortConfig implements Serializable {
 
     private int socketTimeoutMs;
     private int socketBufferSize;
+    private boolean socketKeepAlive;
 
     private boolean useNioConnector;
     private int nioConnectorSelectors;
@@ -228,6 +227,7 @@ public class VoldemortConfig implements Serializable {
 
         this.socketTimeoutMs = props.getInt("socket.timeout.ms", 4000);
         this.socketBufferSize = (int) props.getBytes("socket.buffer.size", 32 * 1024);
+        this.socketKeepAlive = props.getBoolean("socket.keepalive", false);
 
         this.useNioConnector = props.getBoolean("enable.nio.connector", false);
         this.nioConnectorSelectors = props.getInt("nio.connector.selectors",
@@ -260,7 +260,7 @@ public class VoldemortConfig implements Serializable {
         this.gossipInterval = props.getInt("gossip.interval.ms", 30 * 1000);
         this.pusherPollMs = props.getInt("pusher.poll.ms", 2 * 60 * 1000);
 
-        this.schedulerThreads = props.getInt("scheduler.threads", 3);
+        this.schedulerThreads = props.getInt("scheduler.threads", 6);
 
         this.numCleanupPermits = props.getInt("num.cleanup.permits", 1);
 
@@ -292,7 +292,7 @@ public class VoldemortConfig implements Serializable {
         this.maxParallelStoresRebalancing = props.getInt("max.parallel.stores.rebalancing", 3);
 
         this.failureDetectorImplementation = props.getString("failuredetector.implementation",
-                                                             BannagePeriodFailureDetector.class.getName());
+                                                             FailureDetectorConfig.DEFAULT_IMPLEMENTATION_CLASS_NAME);
 
         // We're changing the property from "client.node.bannage.ms" to
         // "failuredetector.bannage.period" so if we have the old one, migrate
@@ -315,7 +315,7 @@ public class VoldemortConfig implements Serializable {
         this.failureDetectorCatastrophicErrorTypes = props.getList("failuredetector.catastrophic.error.types",
                                                                    FailureDetectorConfig.DEFAULT_CATASTROPHIC_ERROR_TYPES);
         this.failureDetectorRequestLengthThreshold = props.getLong("failuredetector.request.length.threshold",
-                                                                   clientRoutingTimeoutMs / 10);
+                                                                   getSocketTimeoutMs());
 
         // network class loader disable by default.
         this.enableNetworkClassLoader = props.getBoolean("enable.network.classloader", false);
@@ -886,6 +886,14 @@ public class VoldemortConfig implements Serializable {
 
     public void setSocketBufferSize(int socketBufferSize) {
         this.socketBufferSize = socketBufferSize;
+    }
+
+    public boolean getSocketKeepAlive() {
+        return this.socketKeepAlive;
+    }
+
+    public void setSocketKeepAlive(boolean on) {
+        this.socketKeepAlive = on;
     }
 
     public boolean getUseNioConnector() {

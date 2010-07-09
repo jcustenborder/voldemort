@@ -37,7 +37,6 @@ import voldemort.annotations.concurrency.NotThreadsafe;
  * expansion. Additionally, some callers might wish to "un-expand" the buffer
  * back to a more reasonable size after use.
  * 
- * @author Kirk True
  */
 
 @NotThreadsafe
@@ -45,8 +44,11 @@ public class ByteBufferBackedOutputStream extends OutputStream {
 
     private ByteBuffer buffer;
 
+    private boolean wasExpanded;
+
     public ByteBufferBackedOutputStream(ByteBuffer buffer) {
         this.buffer = buffer;
+        wasExpanded = false;
     }
 
     public ByteBuffer getBuffer() {
@@ -55,6 +57,7 @@ public class ByteBufferBackedOutputStream extends OutputStream {
 
     public void setBuffer(ByteBuffer buffer) {
         this.buffer = buffer;
+        wasExpanded = false;
     }
 
     @Override
@@ -77,6 +80,11 @@ public class ByteBufferBackedOutputStream extends OutputStream {
 
         int newCapacity = buffer.capacity() + need;
         buffer = ByteUtils.expand(buffer, newCapacity * 2);
+        wasExpanded = true;
+    }
+
+    public boolean wasExpanded() {
+        return wasExpanded;
     }
 
 }

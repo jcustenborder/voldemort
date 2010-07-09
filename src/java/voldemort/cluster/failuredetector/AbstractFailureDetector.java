@@ -33,7 +33,6 @@ import voldemort.store.UnreachableStoreException;
  * AbstractFailureDetector serves as a building block for FailureDetector
  * implementations.
  * 
- * @author Kirk True
  */
 
 public abstract class AbstractFailureDetector implements FailureDetector {
@@ -151,7 +150,7 @@ public abstract class AbstractFailureDetector implements FailureDetector {
         NodeStatus nodeStatus = getNodeStatus(node);
 
         if(logger.isTraceEnabled())
-            logger.trace(node + " set as available");
+            logger.trace("Node " + node.getId() + " set as available");
 
         // We need to distinguish the case where we're newly available and the
         // case where we're getting redundant availability notices. So let's
@@ -162,7 +161,7 @@ public abstract class AbstractFailureDetector implements FailureDetector {
         // so notify any listeners.
         if(!previouslyAvailable) {
             if(logger.isInfoEnabled())
-                logger.info(node + " now available");
+                logger.info("Node " + node.getId() + " now available");
 
             synchronized(nodeStatus) {
                 nodeStatus.notifyAll();
@@ -184,9 +183,9 @@ public abstract class AbstractFailureDetector implements FailureDetector {
 
         if(logger.isEnabledFor(Level.WARN)) {
             if(e != null)
-                logger.warn(node + " set as unavailable", e);
+                logger.warn("Node " + node.getId() + " set as unavailable", e);
             else
-                logger.warn(node + " set as unavailable");
+                logger.warn("Node " + node.getId() + " set as unavailable");
         }
 
         // We need to distinguish the case where we're newly unavailable and the
@@ -198,7 +197,7 @@ public abstract class AbstractFailureDetector implements FailureDetector {
         // available to unavailable, so notify any listeners.
         if(previouslyAvailable) {
             if(logger.isInfoEnabled())
-                logger.info(node + " now unavailable");
+                logger.info("Node " + node.getId() + " now unavailable");
 
             for(FailureDetectorListener fdl: listeners.keySet()) {
                 try {
@@ -215,7 +214,10 @@ public abstract class AbstractFailureDetector implements FailureDetector {
         NodeStatus nodeStatus = nodeStatusMap.get(node);
 
         if(nodeStatus == null) {
-            logger.warn("creating new node status for node " + node + " for failure detector.");
+            if(logger.isEnabledFor(Level.WARN))
+                logger.warn("creating new node status for node " + node.getId()
+                            + " for failure detector");
+
             nodeStatus = createNodeStatus(failureDetectorConfig.getTime().getMilliseconds());
             nodeStatusMap.put(node, nodeStatus);
         }

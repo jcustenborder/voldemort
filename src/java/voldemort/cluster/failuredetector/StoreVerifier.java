@@ -19,6 +19,8 @@ package voldemort.cluster.failuredetector;
 import voldemort.VoldemortException;
 import voldemort.cluster.Node;
 import voldemort.store.UnreachableStoreException;
+import voldemort.store.metadata.MetadataStore;
+import voldemort.utils.ByteArray;
 
 /**
  * A StoreVerifier is used to test a Store given a Node. The act of testing a
@@ -32,10 +34,11 @@ import voldemort.store.UnreachableStoreException;
  * This is used by some FailureDetector implementations to attempt contact with
  * the node before marking said node as available.
  * 
- * @author Kirk True
  */
 
 public interface StoreVerifier {
+
+    public static final ByteArray KEY = new ByteArray(MetadataStore.NODE_ID_KEY.getBytes());
 
     /**
      * Verifies the ability to connect to a Store for this node.

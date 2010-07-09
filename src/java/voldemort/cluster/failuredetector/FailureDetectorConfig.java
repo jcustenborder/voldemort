@@ -37,7 +37,6 @@ import com.google.common.collect.ImmutableList;
  * {@link FailureDetectorUtils}'s {@link FailureDetectorUtils#create create}
  * method to create a full-blown {@link FailureDetector} instance.
  * 
- * @author Kirk True
  */
 
 public class FailureDetectorConfig {
@@ -58,7 +57,7 @@ public class FailureDetectorConfig {
                                                                                          UnknownHostException.class.getName(),
                                                                                          NoRouteToHostException.class.getName());
 
-    public static final long DEFAULT_REQUEST_LENGTH_THRESHOLD = 1000;
+    public static final long DEFAULT_REQUEST_LENGTH_THRESHOLD = 5000;
 
     protected String implementationClassName = DEFAULT_IMPLEMENTATION_CLASS_NAME;
 

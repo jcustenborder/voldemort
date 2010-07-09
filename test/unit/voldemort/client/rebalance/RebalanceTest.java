@@ -24,7 +24,6 @@ import voldemort.server.VoldemortServer;
  * Start VoldemortServer locally using ServerTestUtils and run rebalancing
  * tests.
  * 
- * @author bbansal
  * 
  */
 @RunWith(Parameterized.class)
@@ -39,7 +38,7 @@ public class RebalanceTest extends AbstractRebalanceTest {
 
     @Parameters
     public static Collection<Object[]> configs() {
-        return Arrays.asList(new Object[][] { { true }, { false } });
+        return Arrays.asList(new Object[][] { { false } });
     }
 
     @Override

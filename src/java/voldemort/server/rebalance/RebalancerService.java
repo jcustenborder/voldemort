@@ -6,12 +6,11 @@ import voldemort.annotations.jmx.JmxManaged;
 import voldemort.server.AbstractService;
 import voldemort.server.ServiceType;
 import voldemort.server.VoldemortConfig;
-import voldemort.server.protocol.admin.AsyncOperationRunner;
+import voldemort.server.protocol.admin.AsyncOperationService;
 import voldemort.server.scheduler.SchedulerService;
 import voldemort.store.metadata.MetadataStore;
 
 /**
- * @author bbansal
  */
 @JmxManaged(description = "Rebalancer service to check if server is in rebalancing state and attempt rebalancing periodically.")
 public class RebalancerService extends AbstractService {
@@ -22,11 +21,11 @@ public class RebalancerService extends AbstractService {
 
     public RebalancerService(MetadataStore metadataStore,
                              VoldemortConfig voldemortConfig,
-                             AsyncOperationRunner asyncRunner,
+                             AsyncOperationService asyncService,
                              SchedulerService service) {
         super(ServiceType.REBALANCE);
         schedulerService = service;
-        rebalancer = new Rebalancer(metadataStore, voldemortConfig, asyncRunner);
+        rebalancer = new Rebalancer(metadataStore, voldemortConfig, asyncService);
         periodMs = voldemortConfig.getRebalancingServicePeriod();
     }
 

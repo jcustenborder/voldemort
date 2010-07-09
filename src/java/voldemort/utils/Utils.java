@@ -30,7 +30,6 @@ import voldemort.VoldemortException;
 /**
  * Helper functions FTW!
  * 
- * @author jay
  * 
  */
 public class Utils {
@@ -122,6 +121,24 @@ public class Utils {
         boolean succeeded = source.renameTo(dest);
         if(!succeeded)
             throw new VoldemortException("Rename of " + source + " to " + dest + " failed.");
+    }
+
+    /**
+     * Make the directory specified in the parameters. If it exists, see if we
+     * can write to it
+     * 
+     * @param newDir The directory we want to make
+     */
+    public static void mkdirs(File newDir) {
+        if(newDir.exists()) {
+            if(!newDir.canWrite() || !newDir.canRead())
+                throw new VoldemortException("Unable to access directory "
+                                             + newDir.getAbsolutePath());
+        } else {
+            if(!newDir.mkdirs())
+                throw new VoldemortException("Unable to create directory "
+                                             + newDir.getAbsolutePath());
+        }
     }
 
     /**
@@ -380,6 +397,11 @@ public class Utils {
         } catch(URISyntaxException e) {
             throw new VoldemortException(e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T1,T2> T1 uncheckedCast(T2 t2) {
+        return (T1) t2;
     }
 
 }

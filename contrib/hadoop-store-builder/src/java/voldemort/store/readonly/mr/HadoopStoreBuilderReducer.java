@@ -20,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -33,12 +34,13 @@ import org.apache.log4j.Logger;
 
 import voldemort.VoldemortException;
 import voldemort.store.readonly.ReadOnlyUtils;
+import voldemort.store.readonly.checksum.CheckSum;
+import voldemort.store.readonly.checksum.CheckSum.CheckSumType;
 import voldemort.utils.ByteUtils;
 
 /**
  * Take key md5s and value bytes and build a read-only store from these values
  * 
- * @author bbansal, jay
  * 
  */
 public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable implements
@@ -57,6 +59,9 @@ public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable 
     private Path taskValueFileName;
     private String outputDir;
     private JobConf conf;
+    private CheckSumType checkSumType;
+    private CheckSum checkSumDigestIndex;
+    private CheckSum checkSumDigestValue;
 
     /**
      * Reduce should get sorted MD5 keys here with a single value (appended in
@@ -77,12 +82,19 @@ public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable 
         // Write key and position
         this.indexFileStream.write(key.get(), 0, key.getSize());
         this.indexFileStream.writeInt(this.position);
+        if(this.checkSumDigestIndex != null) {
+            this.checkSumDigestIndex.update(key.get(), 0, key.getSize());
+            this.checkSumDigestIndex.update(this.position);
+        }
 
         // Write length and value
         int valueLength = writable.getSize() - 4;
         this.valueFileStream.writeInt(valueLength);
         this.valueFileStream.write(valueBytes, 4, valueLength);
-
+        if(this.checkSumDigestValue != null) {
+            this.checkSumDigestValue.update(valueLength);
+            this.checkSumDigestValue.update(valueBytes, 4, valueLength);
+        }
         this.position += 4 + valueLength;
         if(this.position < 0)
             throw new VoldemortException("Chunk overflow exception: chunk " + chunkId
@@ -107,6 +119,9 @@ public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable 
             this.numChunks = job.getInt("num.chunks", -1);
             this.outputDir = job.get("final.output.dir");
             this.taskId = job.get("mapred.task.id");
+            this.checkSumType = CheckSum.fromString(job.get("checksum.type"));
+            this.checkSumDigestIndex = CheckSum.getInstance(checkSumType);
+            this.checkSumDigestValue = CheckSum.getInstance(checkSumType);
 
             this.taskIndexFileName = new Path(FileOutputFormat.getOutputPath(job), getStoreName()
                                                                                    + "."
@@ -121,8 +136,8 @@ public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable 
             logger.info("Opening " + this.taskIndexFileName + " and " + this.taskValueFileName
                         + " for writing.");
             FileSystem fs = this.taskIndexFileName.getFileSystem(job);
-            this.indexFileStream = fs.create(this.taskIndexFileName, (short) replicationFactor);
-            this.valueFileStream = fs.create(this.taskValueFileName, (short) replicationFactor);
+            this.indexFileStream = fs.create(this.taskIndexFileName);
+            this.valueFileStream = fs.create(this.taskValueFileName);
         } catch(IOException e) {
             throw new RuntimeException("Failed to open Input/OutputStream", e);
         }
@@ -133,6 +148,11 @@ public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable 
         this.indexFileStream.close();
         this.valueFileStream.close();
 
+        if(this.nodeId == -1 || this.chunkId == -1) {
+            // No data was read in the reduce phase, do not create any output
+            // directory (Also Issue 258)
+            return;
+        }
         Path nodeDir = new Path(this.outputDir, "node-" + this.nodeId);
         Path indexFile = new Path(nodeDir, this.chunkId + ".index");
         Path valueFile = new Path(nodeDir, this.chunkId + ".data");
@@ -140,6 +160,23 @@ public class HadoopStoreBuilderReducer extends AbstractStoreBuilderConfigurable 
         // create output directory
         FileSystem fs = indexFile.getFileSystem(this.conf);
         fs.mkdirs(nodeDir);
+
+        if(this.checkSumType != CheckSumType.NONE) {
+            if(this.checkSumDigestIndex != null && this.checkSumDigestValue != null) {
+                Path checkSumIndexFile = new Path(nodeDir, this.chunkId + ".index.checksum");
+                Path checkSumValueFile = new Path(nodeDir, this.chunkId + ".data.checksum");
+
+                FSDataOutputStream output = fs.create(checkSumIndexFile);
+                output.write(this.checkSumDigestIndex.getCheckSum());
+                output.close();
+
+                output = fs.create(checkSumValueFile);
+                output.write(this.checkSumDigestValue.getCheckSum());
+                output.close();
+            } else {
+                throw new VoldemortException("Failed to open CheckSum digest");
+            }
+        }
 
         logger.info("Moving " + this.taskIndexFileName + " to " + indexFile + ".");
         fs.rename(taskIndexFileName, indexFile);

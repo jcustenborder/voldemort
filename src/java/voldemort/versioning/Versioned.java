@@ -26,14 +26,13 @@ import com.google.common.base.Objects;
 /**
  * A wrapper for an object that adds a Version.
  * 
- * @author jay
  * 
  */
 public final class Versioned<T> implements Serializable {
 
     private static final long serialVersionUID = 1;
 
-    private VectorClock version;
+    private final VectorClock version;
     private volatile T object;
 
     public Versioned(T object) {

@@ -36,7 +36,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import voldemort.annotations.jmx.JmxGetter;
+import voldemort.server.protocol.admin.AsyncOperationStatus;
 import voldemort.store.readonly.FileFetcher;
+import voldemort.store.readonly.checksum.CheckSum;
+import voldemort.store.readonly.checksum.CheckSum.CheckSumType;
+import voldemort.utils.ByteUtils;
 import voldemort.utils.EventThrottler;
 import voldemort.utils.JmxUtils;
 import voldemort.utils.Props;
@@ -46,7 +50,6 @@ import voldemort.utils.Utils;
 /**
  * A fetcher that fetches the store files from HDFS
  * 
- * @author jay
  * 
  */
 public class HdfsFetcher implements FileFetcher {
@@ -61,6 +64,7 @@ public class HdfsFetcher implements FileFetcher {
     private final Long maxBytesPerSecond;
     private final int bufferSize;
     private final AtomicInteger copyCount = new AtomicInteger(0);
+    private AsyncOperationStatus status;
 
     public HdfsFetcher(Props props) {
         this(props.containsKey("fetcher.max.bytes.per.sec") ? props.getBytes("fetcher.max.bytes.per.sec")
@@ -82,10 +86,11 @@ public class HdfsFetcher implements FileFetcher {
             this.tempDir = Utils.notNull(new File(tempDir, "hdfs-fetcher"));
         this.maxBytesPerSecond = maxBytesPerSecond;
         this.bufferSize = bufferSize;
-        this.tempDir.mkdirs();
+        this.status = null;
+        Utils.mkdirs(this.tempDir);
     }
 
-    public File fetch(String fileUrl) throws IOException {
+    public File fetch(String fileUrl, String storeName) throws IOException {
         Path path = new Path(fileUrl);
         Configuration config = new Configuration();
         config.setInt("io.socket.receive.buffer", bufferSize);
@@ -100,46 +105,88 @@ public class HdfsFetcher implements FileFetcher {
         ObjectName jmxName = JmxUtils.registerMbean("hdfs-copy-" + copyCount.getAndIncrement(),
                                                     stats);
         try {
-            File destination = new File(this.tempDir, path.getName());
-            fetch(fs, path, destination, throttler, stats);
-            return destination;
+            File storeDir = new File(this.tempDir, storeName + "_" + System.currentTimeMillis());
+            Utils.mkdirs(storeDir);
+
+            File destination = new File(storeDir.getAbsoluteFile(), path.getName());
+            boolean result = fetch(fs, path, destination, throttler, stats);
+            if(result) {
+                return destination;
+            } else {
+                return null;
+            }
         } finally {
             JmxUtils.unregisterMbean(jmxName);
         }
     }
 
-    private void fetch(FileSystem fs,
-                       Path source,
-                       File dest,
-                       EventThrottler throttler,
-                       CopyStats stats) throws IOException {
-        if(fs.isFile(source)) {
-            copyFile(fs, source, dest, throttler, stats);
-        } else {
-            dest.mkdirs();
+    private boolean fetch(FileSystem fs,
+                          Path source,
+                          File dest,
+                          EventThrottler throttler,
+                          CopyStats stats) throws IOException {
+        if(!fs.isFile(source)) {
+            Utils.mkdirs(dest);
             FileStatus[] statuses = fs.listStatus(source);
             if(statuses != null) {
                 // sort the files so that index files come last. Maybe
                 // this will help keep them cached until the swap
                 Arrays.sort(statuses, new IndexFileLastComparator());
+                byte[] origCheckSum = null;
+                CheckSumType checkSumType = CheckSumType.NONE;
+
+                // Do a checksum of checksum - Similar to HDFS
+                CheckSum checkSumGenerator = null;
+                CheckSum fileCheckSumGenerator = null;
+
                 for(FileStatus status: statuses) {
-                    if(!status.getPath().getName().startsWith(".")) {
-                        fetch(fs,
-                              status.getPath(),
-                              new File(dest, status.getPath().getName()),
-                              throttler,
-                              stats);
+
+                    if(status.getPath().getName().contains("checkSum.txt")) {
+                        checkSumType = CheckSum.fromString(status.getPath().getName());
+                        checkSumGenerator = CheckSum.getInstance(checkSumType);
+                        fileCheckSumGenerator = CheckSum.getInstance(checkSumType);
+                        FSDataInputStream input = fs.open(status.getPath());
+                        origCheckSum = new byte[CheckSum.checkSumLength(checkSumType)];
+                        input.read(origCheckSum);
+                        input.close();
+                        continue;
                     }
+                    if(!status.getPath().getName().startsWith(".")) {
+                        File copyLocation = new File(dest, status.getPath().getName());
+                        copyFileWithCheckSum(fs,
+                                             status.getPath(),
+                                             copyLocation,
+                                             throttler,
+                                             stats,
+                                             fileCheckSumGenerator);
+
+                        if(fileCheckSumGenerator != null && checkSumGenerator != null) {
+                            checkSumGenerator.update(fileCheckSumGenerator.getCheckSum());
+                        }
+                    }
+
+                }
+
+                // Check checksum
+                if(checkSumType != CheckSumType.NONE) {
+                    byte[] newCheckSum = checkSumGenerator.getCheckSum();
+                    return (ByteUtils.compare(newCheckSum, origCheckSum) == 0);
+                } else {
+                    // If checkSum file does not exist
+                    return true;
                 }
             }
         }
+        return false;
+
     }
 
-    private void copyFile(FileSystem fs,
-                          Path source,
-                          File dest,
-                          EventThrottler throttler,
-                          CopyStats stats) throws IOException {
+    private void copyFileWithCheckSum(FileSystem fs,
+                                      Path source,
+                                      File dest,
+                                      EventThrottler throttler,
+                                      CopyStats stats,
+                                      CheckSum fileCheckSumGenerator) throws IOException {
         logger.info("Starting copy of " + source + " to " + dest);
         FSDataInputStream input = null;
         OutputStream output = null;
@@ -149,9 +196,14 @@ public class HdfsFetcher implements FileFetcher {
             byte[] buffer = new byte[bufferSize];
             while(true) {
                 int read = input.read(buffer);
-                if(read < 0)
+                if(read < 0) {
                     break;
-                output.write(buffer, 0, read);
+                } else if(read < bufferSize) {
+                    buffer = ByteUtils.copy(buffer, 0, read);
+                }
+                output.write(buffer);
+                if(fileCheckSumGenerator != null)
+                    fileCheckSumGenerator.update(buffer);
                 if(throttler != null)
                     throttler.maybeThrottle(read);
                 stats.recordBytes(read);
@@ -161,6 +213,13 @@ public class HdfsFetcher implements FileFetcher {
                     logger.info(stats.getTotalBytesCopied() / (1024 * 1024) + " MB copied at "
                                 + format.format(stats.getBytesPerSecond() / (1024 * 1024))
                                 + " MB/sec");
+                    if(this.status != null) {
+                        this.status.setStatus(stats.getTotalBytesCopied()
+                                              / (1024 * 1024)
+                                              + " MB copied at "
+                                              + format.format(stats.getBytesPerSecond()
+                                                              / (1024 * 1024)) + " MB/sec");
+                    }
                     stats.reset();
                 }
             }
@@ -221,12 +280,16 @@ public class HdfsFetcher implements FileFetcher {
      * retaining the index file in page cache until the swap occurs
      * 
      */
-    static class IndexFileLastComparator implements Comparator<FileStatus> {
+    public static class IndexFileLastComparator implements Comparator<FileStatus> {
 
         public int compare(FileStatus fs1, FileStatus fs2) {
             // directories before files
             if(fs1.isDir())
                 return fs2.isDir() ? 0 : -1;
+            else if(fs1.getPath().getName().endsWith("checkSum.txt"))
+                return -1;
+            else if(fs2.getPath().getName().endsWith("checkSum.txt"))
+                return 1;
             // index files after all other files
             else if(fs1.getPath().getName().endsWith(".index"))
                 return fs2.getPath().getName().endsWith(".index") ? 0 : 1;
@@ -236,13 +299,18 @@ public class HdfsFetcher implements FileFetcher {
         }
     }
 
+    public void setAsyncOperationStatus(AsyncOperationStatus status) {
+        this.status = status;
+    }
+
     /*
      * Main method for testing fetching
      */
     public static void main(String[] args) throws Exception {
         if(args.length != 1)
-            Utils.croak("USAGE: java " + HdfsFetcher.class.getName() + " url");
+            Utils.croak("USAGE: java " + HdfsFetcher.class.getName() + " url storeName");
         String url = args[0];
+        String storeName = args[1];
         long maxBytesPerSec = 1024 * 1024 * 1024;
         Path p = new Path(url);
         Configuration config = new Configuration();
@@ -254,7 +322,7 @@ public class HdfsFetcher implements FileFetcher {
         long size = status.getLen();
         HdfsFetcher fetcher = new HdfsFetcher(maxBytesPerSec, null, DEFAULT_BUFFER_SIZE);
         long start = System.currentTimeMillis();
-        File location = fetcher.fetch(url);
+        File location = fetcher.fetch(url, storeName);
         double rate = size * Time.MS_PER_SECOND / (double) (System.currentTimeMillis() - start);
         NumberFormat nf = NumberFormat.getInstance();
         nf.setMaximumFractionDigits(2);

@@ -16,7 +16,6 @@ import java.util.List;
 /**
  * Toy shell for voldemort admin client
  *
- * @author afeinberg
  */
 public class VoldemortAdminClientShell extends VoldemortClientShell {
     private static final String PROMPT = "> ";
@@ -85,7 +84,7 @@ public class VoldemortAdminClientShell extends VoldemortClientShell {
                     String storeName = args[1];
                     List<Integer> partititionList = parseCsv(args[2]);
                     Iterator<ByteArray> partitionKeys =
-                            adminClient.fetchKeys(remoteNodeId, storeName, partititionList, null);
+                            adminClient.fetchKeys(remoteNodeId, storeName, partititionList, null, false);
 
                     BufferedWriter writer = null;
                     try {
@@ -114,7 +113,7 @@ public class VoldemortAdminClientShell extends VoldemortClientShell {
                     String storeName = args[1];
                     List<Integer> partititionList = parseCsv(args[2]);
                     Iterator<Pair<ByteArray,Versioned<byte[]>>> partitionEntries =
-                            adminClient.fetchEntries(remoteNodeId, storeName, partititionList, null);
+                            adminClient.fetchEntries(remoteNodeId, storeName, partititionList, null, false);
                     BufferedWriter writer = null;
                     try {
                         if (args.length > 3) {

@@ -54,7 +54,6 @@ import com.google.common.collect.Maps;
  * data=data-file-url</li>
  * </ol>
  * 
- * @author jay
  * 
  */
 public class ReadOnlyStoreManagementServlet extends HttpServlet {
@@ -62,7 +61,7 @@ public class ReadOnlyStoreManagementServlet extends HttpServlet {
     private static final long serialVersionUID = 1;
     private static final Logger logger = Logger.getLogger(ReadOnlyStoreManagementServlet.class);
 
-    private List<ReadOnlyStorageEngine> stores;
+    private volatile List<ReadOnlyStorageEngine> stores;
     private VelocityEngine velocityEngine;
     private FileFetcher fileFetcher;
 
@@ -79,9 +78,17 @@ public class ReadOnlyStoreManagementServlet extends HttpServlet {
         super.init();
         VoldemortServer server = (VoldemortServer) getServletContext().getAttribute(VoldemortServletContextListener.SERVER_KEY);
 
-        this.stores = getReadOnlyStores(server);
-        this.velocityEngine = (VelocityEngine) Utils.notNull(getServletContext().getAttribute(VoldemortServletContextListener.VELOCITY_ENGINE_KEY));
+        initStores(server);
+        initVelocity();
         setFetcherClass(server);
+    }
+
+    public void initStores(VoldemortServer server) {
+        this.stores = getReadOnlyStores(server);
+    }
+
+    public void initVelocity() {
+        this.velocityEngine = (VelocityEngine) Utils.notNull(getServletContext().getAttribute(VoldemortServletContextListener.VELOCITY_ENGINE_KEY));
     }
 
     private void setFetcherClass(VoldemortServer server) {
@@ -118,6 +125,7 @@ public class ReadOnlyStoreManagementServlet extends HttpServlet {
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException,
             IOException {
+        initStores((VoldemortServer) getServletContext().getAttribute(VoldemortServletContextListener.SERVER_KEY));
         Map<String, Object> params = Maps.newHashMap();
         params.put("stores", stores);
         velocityEngine.render("read-only-mgmt.vm", params, resp.getOutputStream());
@@ -161,17 +169,34 @@ public class ReadOnlyStoreManagementServlet extends HttpServlet {
     private void doFetch(HttpServletRequest req, HttpServletResponse resp) throws IOException,
             ServletException {
         String fetchUrl = getRequired(req, "dir");
+        String storeName = getOptional(req, "store");
 
         // fetch the files if necessary
-        File fetchDir;
+        File fetchDir = null;
         if(fileFetcher == null) {
             fetchDir = new File(fetchUrl);
         } else {
             logger.info("Executing fetch of " + fetchUrl);
-            fetchDir = fileFetcher.fetch(fetchUrl);
-            logger.info("Fetch complete.");
+            try {
+                fetchDir = fileFetcher.fetch(fetchUrl, storeName);
+            } catch(Exception e) {
+                throw new ServletException("Exception in Fetcher = " + e.getMessage());
+            }
+            if(fetchDir == null) {
+                throw new ServletException("Checksum failed for " + fetchUrl + " and store name = "
+                                           + storeName);
+            } else {
+                logger.info("Fetch complete.");
+            }
         }
         resp.getWriter().write(fetchDir.getAbsolutePath());
+    }
+
+    private String getOptional(HttpServletRequest req, String name) {
+        String val = req.getParameter(name);
+        if(val == null)
+            return "";
+        return val;
     }
 
     private void doRollback(HttpServletRequest req) throws ServletException {
@@ -188,6 +213,7 @@ public class ReadOnlyStoreManagementServlet extends HttpServlet {
     }
 
     private ReadOnlyStorageEngine getStore(String storeName) throws ServletException {
+        initStores((VoldemortServer) getServletContext().getAttribute(VoldemortServletContextListener.SERVER_KEY));
         for(ReadOnlyStorageEngine store: this.stores)
             if(store.getName().equals(storeName))
                 return store;

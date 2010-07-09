@@ -51,7 +51,6 @@ import com.google.common.collect.Lists;
 /**
  * A read-only store that fronts a big file
  * 
- * @author jay
  * 
  */
 public class ReadOnlyStorageEngine implements StorageEngine<ByteArray, byte[]> {
@@ -307,8 +306,10 @@ public class ReadOnlyStorageEngine implements StorageEngine<ByteArray, byte[]> {
     }
 
     public void truncate() {
-        throw new UnsupportedOperationException("Truncation is not supported for "
-                                                + getClass().getName());
+        if(isOpen)
+            close();
+        Utils.rm(storeDir);
+        logger.debug("Truncate successful for read-only store ");
     }
 
     public List<Versioned<byte[]>> get(ByteArray key) throws VoldemortException {

@@ -28,7 +28,6 @@ import com.google.common.base.Preconditions;
  * A wrapper around a node id, key and value. This class represents one
  * key/value as fetched from a single server.
  * 
- * @author jay
  * 
  * @param <K> The type of the key
  * @param <V> The type of the value
@@ -76,7 +75,7 @@ final class NodeValue<K, V> implements Serializable, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(nodeId, key, value);
+        return Objects.hashCode(nodeId, key, value.getVersion());
     }
 
     @Override

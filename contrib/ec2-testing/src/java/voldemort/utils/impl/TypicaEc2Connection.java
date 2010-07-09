@@ -37,7 +37,6 @@ import com.xerox.amazonws.ec2.ReservationDescription.Instance;
  * TypicaEc2Connection implements the Ec2Connection interface using the Typica
  * library (http://code.google.com/p/typica/) for EC2 access.
  * 
- * @author Kirk True
  */
 
 public class TypicaEc2Connection implements Ec2Connection {
@@ -87,12 +86,16 @@ public class TypicaEc2Connection implements Ec2Connection {
     public List<HostNamePair> createInstances(String ami,
                                               String keypairId,
                                               Ec2Connection.Ec2InstanceType instanceType,
-                                              int instanceCount) throws Exception {
+                                              int instanceCount,
+                                              List<String> securityGroups) throws Exception {
         LaunchConfiguration launchConfiguration = new LaunchConfiguration(ami);
         launchConfiguration.setInstanceType(InstanceType.valueOf(instanceType.name()));
         launchConfiguration.setKeyName(keypairId);
         launchConfiguration.setMinCount(instanceCount);
         launchConfiguration.setMaxCount(instanceCount);
+        if (securityGroups != null && securityGroups.size() > 0) {
+            launchConfiguration.setSecurityGroup(securityGroups);
+        }
 
         ReservationDescription reservationDescription = ec2.runInstances(launchConfiguration);
 

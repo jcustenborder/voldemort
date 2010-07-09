@@ -1,3 +1,19 @@
+/*
+ * Copyright 2008-2010 LinkedIn, Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package voldemort.utils;
 
 import java.util.ArrayList;
@@ -25,7 +41,6 @@ import voldemort.versioning.Versioned;
  * functions are not utils function but are forced move here to allow more
  * granular unit testing.
  * 
- * @author bbansal
  * 
  */
 public class RebalanceUtils {
@@ -62,6 +77,11 @@ public class RebalanceUtils {
         List<Integer> stealerPartitionList = new ArrayList<Integer>(stealerNode.getPartitionIds());
         List<Integer> donorPartitionList = new ArrayList<Integer>(donorNode.getPartitionIds());
 
+        for (int p: cluster.getNodeById(stealerNode.getId()).getPartitionIds()) {
+            if (!stealerPartitionList.contains(p))
+                stealerPartitionList.add(p);
+        }
+
         for(int p: partitionList) {
             removePartition(donorPartitionList, p);
             if(!stealerPartitionList.contains(p))
@@ -72,6 +92,11 @@ public class RebalanceUtils {
         Collections.sort(stealerPartitionList);
         Collections.sort(donorPartitionList);
 
+        logger.debug("stealerNode: " + stealerNode);
+        logger.debug("donorNode: " + donorNode);
+        logger.debug("stealerPartitionList: " + stealerPartitionList);
+        logger.debug("donorPartitionList: " + donorPartitionList);
+        
         // update both nodes
         stealerNode = updateNode(stealerNode, stealerPartitionList);
         donorNode = updateNode(donorNode, donorPartitionList);
@@ -170,7 +195,7 @@ public class RebalanceUtils {
                                            VectorClock newClock) {
         for(Versioned<Cluster> versionedCluster: clockList) {
             VectorClock clock = (VectorClock) versionedCluster.getVersion();
-            if(Occured.CONCURRENTLY.equals(clock.equals(newClock)))
+            if(Occured.CONCURRENTLY.equals(clock.compare(newClock)))
                 throw new VoldemortException("Cluster is in inconsistent state got conflicting clocks "
                                              + clock + " and " + newClock);
 
@@ -178,28 +203,55 @@ public class RebalanceUtils {
     }
 
     /**
-     * propagate the cluster configuration to all nodes.<br>
-     * throws an exception if failed to propagate on any of the required nodes.
-     * 
-     * @param adminClient
-     * @param masterNodeId
-     * @param cluster
+     * Attempt to propagate cluster definition to all nodes in the cluster.
+     *
+     * @throws VoldemortException If we can't propagate to a list of require nodes.
+     * @param adminClient {@link voldemort.client.protocol.admin.AdminClient} instance to use
+     * @param cluster Cluster definition we wish to propagate
+     * @param clock Vector clock to attach to the cluster definition
+     * @param requireNodeIds If we can't propagate to these node ids, roll back and throw an exception
      */
     public static void propagateCluster(AdminClient adminClient,
                                         Cluster cluster,
                                         VectorClock clock,
+                                        List<Integer> requireNodeIds) {
+        List<Integer> allNodeIds = new ArrayList<Integer>();
+        for (Node node: cluster.getNodes()) {
+            allNodeIds.add(node.getId());
+        }
+        propagateCluster(adminClient,
+                         cluster,
+                         clock,
+                         allNodeIds,
+                         requireNodeIds);
+    }
+
+    /**
+     * Attempt to propagate a cluster definition to specified nodes.
+     *
+     * @throws VoldemortException If we can't propagate to a list of require nodes.
+     * @param adminClient {@link voldemort.client.protocol.admin.AdminClient} instance to use.
+     * @param cluster Cluster definition we wish to propagate
+     * @param clock Vector clock to attach to the cluster definition
+     * @param attemptNodeIds Attempt to propagate to these node ids
+     * @param requiredNodeIds If we can't propagate can't propagate to these node ids, roll back and throw an exception
+     */
+    public static void propagateCluster(AdminClient adminClient,
+                                        Cluster cluster,
+                                        VectorClock clock,
+                                        List<Integer> attemptNodeIds,
                                         List<Integer> requiredNodeIds) {
         List<Integer> failures = new ArrayList<Integer>();
 
         // copy everywhere else first
-        for(Node node: cluster.getNodes()) {
-            if(!requiredNodeIds.contains(node.getId())) {
+        for(int nodeId: attemptNodeIds) {
+            if(!requiredNodeIds.contains(nodeId)) {
                 try {
-                    adminClient.updateRemoteCluster(node.getId(), cluster, clock);
+                    adminClient.updateRemoteCluster(nodeId, cluster, clock);
                 } catch(VoldemortException e) {
                     // ignore these
                     logger.debug("Failed to copy new cluster.xml(" + cluster
-                                 + ") on non-required node:" + node, e);
+                                 + ") on non-required node:" + nodeId, e);
                 }
             }
         }
@@ -237,9 +289,13 @@ public class RebalanceUtils {
 
     public static List<StoreDefinition> getStoreNameList(Cluster cluster, AdminClient adminClient) {
         for(Node node: cluster.getNodes()) {
-            List<StoreDefinition> storeDefList = adminClient.getRemoteStoreDefList(node.getId())
-                                                            .getValue();
-            return getWritableStores(storeDefList);
+            try {
+                List<StoreDefinition> storeDefList = adminClient.getRemoteStoreDefList(node.getId())
+                               .getValue();
+                return getWritableStores(storeDefList);
+            } catch (VoldemortException e) {
+                logger.warn(e);
+            }
         }
 
         throw new VoldemortException("Unable to get StoreDefList from any node for cluster:"

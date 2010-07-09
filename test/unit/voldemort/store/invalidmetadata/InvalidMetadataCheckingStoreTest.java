@@ -19,6 +19,7 @@ package voldemort.store.invalidmetadata;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import junit.framework.TestCase;
 import voldemort.ServerTestUtils;
 import voldemort.cluster.Cluster;
@@ -36,7 +37,6 @@ import voldemort.utils.ByteUtils;
 import voldemort.versioning.Versioned;
 
 /**
- * @author bbansal
  * 
  */
 public class InvalidMetadataCheckingStoreTest extends TestCase {
@@ -140,7 +140,7 @@ public class InvalidMetadataCheckingStoreTest extends TestCase {
 
             if(containsNodeId(routingStrategy.routeRequest(key.get()), nodeId)) {
                 i++; // increment count
-                switch(i % 3) {
+                switch(i % 4) {
                     case 0:
                         store.get(key);
                         break;
@@ -150,7 +150,9 @@ public class InvalidMetadataCheckingStoreTest extends TestCase {
                     case 2:
                         store.put(key, new Versioned<byte[]>(value));
                         break;
-
+                    case 3:
+                        store.getAll(ImmutableList.of(key));
+                        break;
                 }
             }
         }
