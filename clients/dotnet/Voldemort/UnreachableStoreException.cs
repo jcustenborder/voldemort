@@ -11,5 +11,10 @@ namespace Voldemort
         {
 
         }
+        public UnreachableStoreException(string s, Exception innerException):base(s, innerException)
+
+        {
+
+        }
     }
 }

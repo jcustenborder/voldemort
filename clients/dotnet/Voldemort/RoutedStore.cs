@@ -54,6 +54,10 @@ namespace Voldemort
                 if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
                 node.IsAvailable = false;
             }
+            finally
+            {
+                node.Requests++;
+            }
             return false;
         }
         static bool doGetAllFromStore(IEnumerable<byte[]> key,
@@ -73,6 +77,10 @@ namespace Voldemort
                 if (log.IsErrorEnabled) log.Error("Exception while calling store.getAll on " + node, ex);
                 node.IsAvailable = false;
             }
+            finally
+            {
+                node.Requests++;
+            }
             return false;
         }
         static bool doPutFromStore(byte[] key, 
@@ -91,7 +99,10 @@ namespace Voldemort
                 if (log.IsErrorEnabled) log.Error("Exception while calling store.put on " + node, ex);
                 node.IsAvailable = false;
             }
-            
+            finally
+            {
+                node.Requests++;
+            }
             return false;
         }
 
@@ -110,7 +121,11 @@ namespace Voldemort
             catch (UnreachableStoreException ex)
             {
                 if (log.IsErrorEnabled) log.Error("Exception while calling store.deleteKey on " + node, ex);
-                node.IsAvailable = false;   
+                node.IsAvailable = false;
+            }
+            finally
+            {
+                node.Requests++;
             }
             result = false;
             return false;

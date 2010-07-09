@@ -15,6 +15,7 @@ namespace Voldemort
         public string Host { get; private set; }
         public string NegotiationString { get; private set; }
         public int Port { get; private set; }
+        public bool Errored { get; set; }
 
         public ClientConfig Config { get; private set; }
         public Connection(Uri uri, ClientConfig config)
@@ -35,8 +36,6 @@ namespace Voldemort
             this.Host = builder.Host;
             this.Port = builder.Port;
             this.NegotiationString = builder.Path.Trim('/');
-            
-
         }
 
         public Socket Socket { private set; get; }
@@ -67,8 +66,25 @@ namespace Voldemort
 
         public void Close()
         {
-            Pool pool = Pool.GetPool(this.Uri, this.Config);
-            pool.CheckIn(this);
+            const string PREFIX = "Close() - ";
+            if (!this.Errored)
+            {
+                Pool pool = Pool.GetPool(this.Uri, this.Config);
+                pool.CheckIn(this);
+            }
+            else
+            {
+                try
+                {
+                    if (log.IsDebugEnabled) log.DebugFormat(PREFIX + "Error encountered on connection. Removing connection {0} to {1}", this.Socket.LocalEndPoint, this.Socket.RemoteEndPoint);
+                    this.Stream.Dispose();
+                    this.Socket.Close();
+                }
+                catch (Exception ex)
+                {
+                    if (log.IsDebugEnabled) log.Debug(PREFIX + "Exception thrown while cleaning up connection", ex);
+                }
+            }
         }
 
         private void read(byte[] buffer, int length)

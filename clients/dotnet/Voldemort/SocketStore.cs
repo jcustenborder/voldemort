@@ -49,18 +49,28 @@ namespace Voldemort
         {
             try
             {
-                using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
-                {
-                    request.writeGetRequest(conn.Stream, this.Name, key, this.ShouldReroute);
-                    conn.Stream.Flush();
+          
+                    using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
+                    {
+                        try
+                        {
+                            request.writeGetRequest(conn.Stream, this.Name, key, this.ShouldReroute);
+                            conn.Stream.Flush();
 
-                    return request.readGetResponse(conn.Stream);
-                }
+                            return request.readGetResponse(conn.Stream);
+                        }
+                        catch
+                        {
+                            conn.Errored = true;
+                            throw;
+                        }
+                    }
+         
             }
             catch (UnreachableStoreException ex)
             {
                 if (log.IsErrorEnabled) log.Error("Failure to get " + Host, ex);
-                throw new UnreachableStoreException("Failure to get " + Host);
+                throw new UnreachableStoreException("Failure to get " + Host, ex);
             }
         }
 
@@ -70,21 +80,29 @@ namespace Voldemort
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    request.writePutRequest(conn.Stream, 
-                        this.Name, 
-                        key, 
-                        value.value, 
-                        (VectorClock)value.version, 
-                        this.ShouldReroute);
-                    conn.Stream.Flush();
+                    try
+                    {
+                        request.writePutRequest(conn.Stream,
+                            this.Name,
+                            key,
+                            value.value,
+                            (VectorClock)value.version,
+                            this.ShouldReroute);
+                        conn.Stream.Flush();
 
-                    request.readPutResponse(conn.Stream);
+                        request.readPutResponse(conn.Stream);
+                    }
+                    catch
+                    {
+                        conn.Errored = true;
+                        throw;
+                    }
                 }
             }
             catch (UnreachableStoreException ex)
             {
                 if (log.IsErrorEnabled) log.Error("Failure to get " + Host, ex);
-                throw new UnreachableStoreException("Failure to get " + Host);
+                throw new UnreachableStoreException("Failure to get " + Host, ex);
             }
         }
 
@@ -94,20 +112,28 @@ namespace Voldemort
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    request.writeDeleteRequest(conn.Stream,
-                        this.Name,
-                        key,
-                        version.version,
-                        this.ShouldReroute);
-                    conn.Stream.Flush();
+                    try
+                    {
+                        request.writeDeleteRequest(conn.Stream,
+                            this.Name,
+                            key,
+                            version.version,
+                            this.ShouldReroute);
+                        conn.Stream.Flush();
 
-                    return request.readDeleteResponse(conn.Stream);
+                        return request.readDeleteResponse(conn.Stream);
+                    }
+                    catch
+                    {
+                        conn.Errored = true;
+                        throw;
+                    }
                 }
             }
             catch (UnreachableStoreException ex)
             {
                 if (log.IsErrorEnabled) log.Error("Failure to get " + Host, ex);
-                throw new UnreachableStoreException("Failure to get " + Host);
+                throw new UnreachableStoreException("Failure to get " + Host, ex);
             }
         }
 
@@ -124,19 +150,27 @@ namespace Voldemort
             {
                 using (Connection conn = Pool.Checkout(this.Host, this.Port, request.getNegotiationString()))
                 {
-                    request.writeGetAllRequest(conn.Stream,
-                        this.Name,
-                        keys,
-                        this.ShouldReroute);
-                    conn.Stream.Flush();
+                    try
+                    {
+                        request.writeGetAllRequest(conn.Stream,
+                            this.Name,
+                            keys,
+                            this.ShouldReroute);
+                        conn.Stream.Flush();
 
-                    return request.readGetAllResponse(conn.Stream);
+                        return request.readGetAllResponse(conn.Stream);
+                    }
+                    catch
+                    {
+                        conn.Errored = true;
+                        throw;
+                    }
                 }
             }
             catch (UnreachableStoreException ex)
             {
                 if (log.IsErrorEnabled) log.Error("Failure to get " + Host, ex);
-                throw new UnreachableStoreException("Failure to get " + Host);
+                throw new UnreachableStoreException("Failure to get " + Host, ex);
             }
         }
     }

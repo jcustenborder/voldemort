@@ -7,6 +7,10 @@ namespace Voldemort.Model
 {
     public class Node
     {
+        public Node()
+        {
+            this.IsAvailable = true;
+        }
         private static readonly Logger log = new Logger();
         [XmlElement("id")]
         public int ID { get; set; }
@@ -25,6 +29,9 @@ namespace Voldemort.Model
 
         [XmlIgnore]
         public bool IsAvailable { get; set; }
+
+        [XmlIgnore]
+        internal long Requests { get; set; }
 
         public int[] GetPartitions()
         {
@@ -57,6 +64,8 @@ namespace Voldemort.Model
 
             this.PartitionsValue = string.Join(", ", values.ToArray());
         }
+
+        private static Random Random = new Random();
 
         public static IList<Node> GetAvailableNodes(IList<Node> nodes)
         {

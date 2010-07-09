@@ -18,13 +18,14 @@ namespace Voldemort
             _Cluster = cluster;
         }
 
-        
-
+        static Random Random = new Random();
         public IList<Node> routeRequest(byte[] key)
         {
-            return new List<Node>(_Cluster.NodeMap.Values);
+            List<Node> nodes =new List<Node>(_Cluster.NodeMap.Values);
+            nodes.Sort(delegate(Node a, Node b) { return a.Requests.CompareTo(b.Requests); });
+            return nodes;
         }
 
-        
+ 
     }
 }
