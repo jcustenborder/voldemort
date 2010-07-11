@@ -8,6 +8,10 @@ namespace Voldemort.Serializers
 {
     public class ProtocolBufferSerializer<T>:Serializer<T>
     {
+        public static readonly Serializer<T> Instance = new ProtocolBufferSerializer<T>();
+
+        private ProtocolBufferSerializer() { }
+
         public byte[] Serialize(T instance)
         {
             using (MemoryStream iostr = new MemoryStream())

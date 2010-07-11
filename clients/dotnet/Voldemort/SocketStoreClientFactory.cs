@@ -27,21 +27,35 @@ namespace Voldemort
             _ConnPool = new ConnectionPool(_Config);
         }
 
-        public StoreClient getStoreClient(string storeName)
+        public StoreClient<Key, Value> GetStoreClient<Key, Value>(string storeName, Serializers.Serializer<Key> KeySerializer, Serializers.Serializer<Value> ValueSerializer)
         {
-            return getStoreClient(storeName, null);
+            return GetStoreClient<Key, Value>(storeName, KeySerializer, ValueSerializer, null);
+        }
+        public StoreClient<Key, Value> GetStoreClient<Key, Value>(string storeName, Serializers.Serializer<Key> KeySerializer, Serializers.Serializer<Value> ValueSerializer, InconsistencyResolver resolver)
+        {
+            if (string.IsNullOrEmpty(storeName)) throw new ArgumentNullException("storeName", "storeName cannot be null.");
+            Store store = GetRawStore(storeName, resolver);
+            DefaultStoreClient<Key, Value> client= new DefaultStoreClient<Key, Value>(store, resolver, _Config, this);
+            client.KeySerializer = KeySerializer;
+            client.ValueSerializer = ValueSerializer;
+            return client;
         }
 
-        public StoreClient getStoreClient(string storeName, InconsistencyResolver resolver)
+        public StoreClient GetStoreClient(string storeName)
+        {
+            return GetStoreClient(storeName, null);
+        }
+
+        public StoreClient GetStoreClient(string storeName, InconsistencyResolver resolver)
         {
             if (string.IsNullOrEmpty(storeName)) throw new ArgumentNullException("storeName", "storeName cannot be null.");
 
-            Store store = getRawStore(storeName, resolver);
+            Store store = GetRawStore(storeName, resolver);
 
             return new DefaultStoreClient(store, resolver, _Config, this);
         }
 
-        public Store getRawStore(string storeName, InconsistencyResolver resolver)
+        public Store GetRawStore(string storeName, InconsistencyResolver resolver)
         {
             if (string.IsNullOrEmpty(storeName)) throw new ArgumentNullException("storeName", "storeName cannot be null.");
 

@@ -48,7 +48,7 @@ namespace Voldemort.TestConsole
             Console.WriteLine("Testing with Store{0}\t{1}", Environment.NewLine, TESTSTORE);
             
 
-            StoreClient client = factory.getStoreClient(TESTSTORE);
+            StoreClient client = factory.GetStoreClient(TESTSTORE);
 
             
 
@@ -68,7 +68,7 @@ namespace Voldemort.TestConsole
 
             random.NextBytes(newValue);
 
-            client.put(key, newValue);
+            client.Put(key, newValue);
 
             //1266903413697
             //1268207710770
@@ -84,7 +84,7 @@ namespace Voldemort.TestConsole
                 byte[] buffer = new byte[RequestSize];
                 random.NextBytes(buffer);
 
-                client.put(key, buffer);
+                client.Put(key, buffer);
 
                
                 long totalTicks = 0;
@@ -99,7 +99,7 @@ namespace Voldemort.TestConsole
 
                     // do some random pointless operations
                     Stopwatch watch = Stopwatch.StartNew();
-                    Versioned value = client.get(key);
+                    Versioned value = client.Get(key);
                     watch.Stop();
                     totalTicks += watch.ElapsedTicks;
                 }
@@ -125,14 +125,14 @@ namespace Voldemort.TestConsole
                     getAllTestKeys.Add(testKey);
                         byte[] buffer = new byte[RequestSize];
                         random.NextBytes(buffer);
-                        client.put(testKey, buffer);
+                        client.Put(testKey, buffer);
                 }
 
                 long totalTicks = 0;
                 for (int i = 0; i < REQUESTS; i++)
                 {
                     Stopwatch watch = Stopwatch.StartNew();
-                    IList<KeyedVersions> values = client.getAll(getAllTestKeys);
+                    IList<KeyedVersions> values = client.GetAll(getAllTestKeys);
                     watch.Stop();
                     totalTicks += watch.ElapsedTicks;
                 }

@@ -28,14 +28,14 @@ namespace Voldemort
 
 
 
-        public byte[] getValue(byte[] key)
+        public byte[] GetValue(byte[] key)
         {
-            return getValue(key, null);
+            return GetValue(key, null);
         }
 
-        public byte[] getValue(byte[] key, byte[] defaultValue)
+        public byte[] GetValue(byte[] key, byte[] defaultValue)
         {
-            Versioned value = get(key, null);
+            Versioned value = Get(key, null);
 
             if (null == value)
                 return defaultValue;
@@ -43,14 +43,14 @@ namespace Voldemort
                 return value.value;
         }
 
-        public Versioned get(byte[] key)
+        public Versioned Get(byte[] key)
         {
-            return get(key, null);
+            return Get(key, null);
         }
 
         const int METADATA_REFRESH_ATTEMPTS = 3;
 
-        public Versioned get(byte[] key, Versioned defaultValue)
+        public Versioned Get(byte[] key, Versioned defaultValue)
         {
             for (int attempts = 0; attempts < METADATA_REFRESH_ATTEMPTS; attempts++)
             {
@@ -84,13 +84,13 @@ namespace Voldemort
 
         private void reinit()
         {
-            Store store = _Factory.getRawStore(_Store.Name, _Resolver);
+            Store store = _Factory.GetRawStore(_Store.Name, _Resolver);
             _Store = store;
         }
 
-        public void put(byte[] key, byte[] value)
+        public void Put(byte[] key, byte[] value)
         {
-            Versioned vv = get(key);
+            Versioned vv = Get(key);
 
             if (null == vv)
             {
@@ -108,10 +108,10 @@ namespace Voldemort
                 vv.value = value;
             }
 
-            put(key, vv);
+            Put(key, vv);
         }
 
-        public void put(byte[] key, Versioned value)
+        public void Put(byte[] key, Versioned value)
         {
             for (int attempts = 0; attempts < METADATA_REFRESH_ATTEMPTS; attempts++)
             {
@@ -129,11 +129,11 @@ namespace Voldemort
             throw new InvalidMetadataException("Exceeded maximum metadata refresh attempts");
         }
 
-        public bool putifNotObsolete(byte[] key, Versioned value)
+        public bool PutifNotObsolete(byte[] key, Versioned value)
         {
             try
             {
-                put(key, value);
+                Put(key, value);
                 return true;
             }
             catch (ObsoleteVersionException)
@@ -143,18 +143,18 @@ namespace Voldemort
             }
         }
 
-        public bool deleteKey(byte[] key)
+        public bool DeleteKey(byte[] key)
         {
-            Versioned vv = get(key);
+            Versioned vv = Get(key);
 
             if (null == vv)
                 return false;
 
-            return deleteKey(key, vv);
+            return DeleteKey(key, vv);
 
         }
 
-        public bool deleteKey(byte[] key, Versioned version)
+        public bool DeleteKey(byte[] key, Versioned version)
         {
             for (int attempts = 0; attempts < METADATA_REFRESH_ATTEMPTS; attempts++)
             {
@@ -173,7 +173,7 @@ namespace Voldemort
      
 
 
-        public IList<KeyedVersions> getAll(IEnumerable<byte[]> keys)
+        public IList<KeyedVersions> GetAll(IEnumerable<byte[]> keys)
         {
             for (int attempts = 0; attempts < METADATA_REFRESH_ATTEMPTS; attempts++)
             {
@@ -201,10 +201,10 @@ namespace Voldemort
         public Serializer<Value> ValueSerializer{ get; set; }
 
 
-        public Value getValue(Key key)
+        public Value GetValue(Key key)
         {
             byte[] keyBuffer = KeySerializer.Serialize(key);
-            byte[] valueBuffer = base.getValue(keyBuffer);
+            byte[] valueBuffer = base.GetValue(keyBuffer);
 
             if (null == valueBuffer || valueBuffer.Length == 0)
             {
@@ -214,10 +214,10 @@ namespace Voldemort
             return ValueSerializer.Deserialize(valueBuffer);
         }
 
-        public Value getValue(Key key, Value defaultValue)
+        public Value GetValue(Key key, Value defaultValue)
         {
             byte[] keyBuffer = KeySerializer.Serialize(key);
-            byte[] valueBuffer = base.getValue(keyBuffer);
+            byte[] valueBuffer = base.GetValue(keyBuffer);
 
             if (null == valueBuffer || valueBuffer.Length == 0)
             {
@@ -227,44 +227,69 @@ namespace Voldemort
             return ValueSerializer.Deserialize(valueBuffer);
         }
 
-        public Versioned get(Key key)
+        public Versioned Get(Key key)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+
+            return base.Get(keyBuffer);
         }
 
-        public Versioned get(Key key, Versioned defaultValue)
+        public Versioned Get(Key key, Versioned defaultValue)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+            return base.Get(keyBuffer, defaultValue);
         }
 
-        public IList<KeyedVersions> getAll(IEnumerable<Key> keys)
+        public IList<KeyValuePair<Key, Value>> GetAll(IEnumerable<Key> keys)
         {
-            throw new NotImplementedException();
+            List<byte[]> keyBuffers = new List<byte[]>();
+            foreach (Key key in keys)
+                keyBuffers.Add(KeySerializer.Serialize(key));
+            IList<KeyedVersions> versions = base.GetAll(keyBuffers);
+
+            List<KeyValuePair<Key, Value>> results = new List<KeyValuePair<Key, Value>>();
+            foreach (KeyedVersions version in versions)
+            {
+                Key key = KeySerializer.Deserialize(version.key);
+                if(version.versions.Count==0)
+                    continue;
+                Value value = ValueSerializer.Deserialize(version.versions[0].value);
+
+                KeyValuePair<Key, Value> result = new KeyValuePair<Key, Value>(key, value);
+                results.Add(result);
+            }
+            return results;
         }
 
-        public void put(Key key, Value value)
+        public void Put(Key key, Value value)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+            byte[] valueBuffer = ValueSerializer.Serialize(value);
+            Put(keyBuffer, valueBuffer);
         }
 
-        public void put(Key key, Versioned value)
+        public void Put(Key key, Versioned value)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+            Put(keyBuffer, value);
         }
 
-        public bool putifNotObsolete(Key key, Versioned value)
+        public bool PutifNotObsolete(Key key, Versioned value)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+            return PutifNotObsolete(key, value);
         }
 
-        public bool deleteKey(Key key)
+        public bool DeleteKey(Key key)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+            return base.DeleteKey(keyBuffer);
         }
 
-        public bool deleteKey(Key key, Versioned version)
+        public bool DeleteKey(Key key, Versioned version)
         {
-            throw new NotImplementedException();
+            byte[] keyBuffer = KeySerializer.Serialize(key);
+            return base.DeleteKey(keyBuffer, version);
         }
 
     }

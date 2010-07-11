@@ -6,9 +6,13 @@ namespace Voldemort.Serializers
 {
     public class UTF8Serializer:Serializer<string>
     {
-        public byte[] Serialize(string instance)
+        public static readonly Serializer<string> instance = new UTF8Serializer();
+
+        private UTF8Serializer() { }
+
+        public byte[] Serialize(string s)
         {
-            return Encoding.UTF8.GetBytes(instance);
+            return Encoding.UTF8.GetBytes(s);
         }
 
         public string Deserialize(byte[] value)

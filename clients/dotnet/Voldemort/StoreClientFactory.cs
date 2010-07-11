@@ -6,15 +6,11 @@ namespace Voldemort
 {
     public interface StoreClientFactory
     {
-        StoreClient getStoreClient(string storeName);
-        StoreClient getStoreClient(string storeName, InconsistencyResolver resolver);
-        Store getRawStore(string storeName, InconsistencyResolver resolver);
-    }
-
-    public interface StoreClientFactory<Key, Value>
-    {
-        StoreClient<Key, Value> getStoreClient(string storeName);
-        StoreClient<Key, Value> getStoreClient(string storeName, InconsistencyResolver resolver);
-        Store<Key, Value> getRawStore(string storeName, InconsistencyResolver resolver);
+        StoreClient GetStoreClient(string storeName);
+        StoreClient GetStoreClient(string storeName, InconsistencyResolver resolver);
+        Store GetRawStore(string storeName, InconsistencyResolver resolver);
+        StoreClient<Key, Value> GetStoreClient<Key, Value>(string storeName, Serializers.Serializer<Key> KeySerializer, Serializers.Serializer<Value> ValueSerializer);
+        StoreClient<Key, Value> GetStoreClient<Key, Value>(string storeName, Serializers.Serializer<Key> KeySerializer, Serializers.Serializer<Value> ValueSerializer, InconsistencyResolver resolver);
+        //Store<Key, Value> getRawStore(string storeName, InconsistencyResolver resolver);
     }
 }
