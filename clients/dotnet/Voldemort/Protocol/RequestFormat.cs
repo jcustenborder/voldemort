@@ -19,6 +19,37 @@ namespace Voldemort.Protocol
             ADMIN_HANDLER
         };
 
+        protected void checkThrowError(Error error)
+        {
+            if (null == error) return;
+
+            switch (error.error_code)
+            {
+                case 2:
+                    throw new InsufficientOperationalNodesException(error.error_message);
+                case 3:
+                    throw new StoreOperationFailureException(error.error_message);
+                case 4:
+                    throw new ObsoleteVersionException(error.error_message);
+                case 7:
+                    throw new UnreachableStoreException(error.error_message);
+                case 8:
+                    throw new InconsistentDataException(error.error_message);
+                case 9:
+                    throw new InvalidMetadataException(error.error_message);
+                case 10:
+                    throw new PersistenceFailureException(error.error_message);
+                case 1:
+                case 5:
+                case 6:
+                default:
+                    throw new VoldemortException(error.error_message);
+            }
+
+            throw new NotImplementedException("Implement the rest of the checkThrowError method");
+        }
+
+
         public static RequestFormat newRequestFormat(RequestFormatType type)
         {
             RequestFormat format = null;
@@ -31,9 +62,10 @@ namespace Voldemort.Protocol
                 case RequestFormatType.PROTOCOL_BUFFERS:
                     format = new ProtocolBuffersRequestFormat();
                     break;
+                case RequestFormatType.ADMIN_HANDLER:
+                    format = new AdminHandlerRequestFormat();
+                    break;
                 default:
-                    
-
                     break;
 
             }

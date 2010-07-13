@@ -4,6 +4,13 @@ using System.Text;
 using NUnit.Framework;
 using Voldemort.Model;
 using System.IO;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+
+using System.Reflection;
+
+using Microsoft.CSharp;
+
 
 namespace Voldemort.Test
 {
@@ -48,6 +55,31 @@ namespace Voldemort.Test
 
             
 
+
+        }
+
+        [Test]
+        public void Test()
+        {
+            string[] Names = Enum.GetNames(typeof(Voldemort.AdminRequestType));
+
+            CodeTypeDeclaration typedeclare = new CodeTypeDeclaration("VoldemortAdminClient");
+            typedeclare.IsInterface = true;
+
+            foreach (string Name in Names)
+            {
+                string[] parts = Name.Split(new string[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < parts.Length; i++)
+                    parts[i] = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(parts[i].ToLower());
+                CodeMemberMethod method = new CodeMemberMethod();
+                method.Name = string.Concat(parts);
+                typedeclare.Members.Add(method);
+            }
+
+            CodeGeneratorOptions options = new CodeGeneratorOptions();
+            options.BracingStyle = "C";
+            CSharpCodeProvider csp = new CSharpCodeProvider();
+            csp.GenerateCodeFromType(typedeclare, Console.Out, options);
 
         }
     }
