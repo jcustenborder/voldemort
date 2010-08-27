@@ -46,8 +46,11 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AbstractStoreClientFactory.cs" />
     <Compile Include="BootstrapFailureException.cs" />
     <Compile Include="ByteArrayComparer.cs" />
+    <Compile Include="MetadataStore.cs" />
+    <Compile Include="Protocol\Admin\AdminClient.cs" />
     <Compile Include="Protocol\AdminHandlerRequestFormat.cs" />
     <Compile Include="Serializers\UTF8LowerCaseSerializer.cs" />
     <Compile Include="Transport\Connection.cs" />
@@ -60,9 +63,9 @@
     <Compile Include="InsufficientOperationalNodesException.cs" />
     <Compile Include="InvalidMetadataException.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="Model\Cluster.cs" />
-    <Compile Include="Model\Node.cs" />
-    <Compile Include="Model\NodeComparer.cs" />
+    <Compile Include="Cluster.cs" />
+    <Compile Include="Node.cs" />
+    <Compile Include="NodeComparer.cs" />
     <Compile Include="ObsoleteVersionException.cs" />
     <Compile Include="PersistenceFailureException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

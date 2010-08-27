@@ -9,11 +9,11 @@ namespace Voldemort
     {
         private static readonly Logger log = new Logger();
         private Store _Store;
-        private StoreClientFactory _Factory;
+        private AbstractStoreClientFactory _Factory;
         private ClientConfig _config;
         private InconsistencyResolver _Resolver;
 
-        public DefaultStoreClient(Store store, InconsistencyResolver resolver, ClientConfig config, StoreClientFactory factory)
+        public DefaultStoreClient(Store store, InconsistencyResolver resolver, ClientConfig config, AbstractStoreClientFactory factory)
         {
             if (null == store) throw new ArgumentNullException("store", "store cannot be null.");
             //if(null==resolver)throw new ArgumentNullException("resolver", "resolver cannot be null.");
@@ -191,7 +191,7 @@ namespace Voldemort
     }
     class DefaultStoreClient<Key, Value> : DefaultStoreClient, StoreClient<Key, Value>
     {
-        public DefaultStoreClient(Store store, InconsistencyResolver resolver, ClientConfig config, StoreClientFactory factory):
+        public DefaultStoreClient(Store store, InconsistencyResolver resolver, ClientConfig config, AbstractStoreClientFactory factory):
             base(store, resolver, config, factory)
         {
 

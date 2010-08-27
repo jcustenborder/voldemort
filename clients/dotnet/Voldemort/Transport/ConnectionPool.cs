@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Hashtable = System.Collections.Hashtable;
-
+using RequestFormatType = Voldemort.Protocol.RequestFormatType;
 namespace Voldemort
 {
     class Pool
@@ -50,11 +50,15 @@ namespace Voldemort
 
             if (null == pool)
             {
-                pool = new Pool(uri, config);
-
                 lock (Pools)
                 {
-                    Pools.Add(uri, pool);
+                    pool = Pools[uri] as Pool;
+
+                    if (null == pool)
+                    {
+                        pool = new Pool(uri, config);
+                        Pools.Add(uri, pool);
+                    }
                 }
             }
 
@@ -95,6 +99,48 @@ namespace Voldemort
             return pool;
         }
 
+        public void Checkin(Connection conn)
+        {
+            Pool pool = Pool.GetPool(conn.Uri, this.Config);
+            pool.CheckIn(conn);
+        }
+
+        public Connection Checkout(string host, int port, RequestFormatType requestFormatType)
+        {
+            string negString = getNegString(requestFormatType);
+            return Checkout(host, port, negString);
+        }
+
+        private string getNegString(RequestFormatType requestFormatType)
+        {
+
+            /*
+    VOLDEMORT_V0("vp0", "voldemort-native-v0"),
+    VOLDEMORT_V1("vp1", "voldemort-native-v1"),
+    VOLDEMORT_V2("vp2", "voldemort-native-v2"),
+    PROTOCOL_BUFFERS("pb0", "protocol-buffers-v0"),
+    ADMIN_PROTOCOL_BUFFERS("ad1", "admin-v1");
+             * */
+
+            string value = null;
+
+            switch (requestFormatType)
+            {
+                case RequestFormatType.ADMIN_HANDLER:
+                    value = "ad1";
+                    break;
+                case RequestFormatType.PROTOCOL_BUFFERS:
+                    value = "pb0";
+                    break;
+                default:
+                    throw new NotSupportedException("RequestFormatType of \"" + requestFormatType + "\" is not supported.");
+            }
+
+
+
+            return value;
+        }
+
         public Connection Checkout(string host, int port, string negString)
         {
             UriBuilder builder = new UriBuilder();
@@ -105,12 +151,6 @@ namespace Voldemort
 
             Pool pool = Pool.GetPool(builder.Uri, this.Config);
             return pool.Checkout();
-        }
-
-        public void Checkin(Connection conn)
-        {
-            Pool pool = Pool.GetPool(conn.Uri, this.Config);
-            pool.CheckIn(conn);
         }
     }
 }

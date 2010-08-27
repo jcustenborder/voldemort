@@ -54,7 +54,7 @@ namespace Voldemort
 
             write(this.NegotiationString);
             byte[] buffer = new byte[2];
-            read(buffer, buffer.Length);
+            Read(buffer, 0, buffer.Length);
 
             if (buffer[0] != (byte)'o' && buffer[1] != (byte)'k')
             {
@@ -87,10 +87,10 @@ namespace Voldemort
             }
         }
 
-        private void read(byte[] buffer, int length)
+        public void Read(byte[] buffer, int index, int length)
         {
             int read = 0;
-            int offset = 0;
+            int offset = index;
             int size = length;
             while (read < length)
             {
@@ -101,10 +101,7 @@ namespace Voldemort
             }
         }
 
-        private int read_some(byte[] buffer, int length)
-        {
-            throw new NotImplementedException();
-        }
+ 
 
         private int write(byte[] buffer, int length)
         {
@@ -131,7 +128,5 @@ namespace Voldemort
         {
             Close();
         }
-
-
     }
 }

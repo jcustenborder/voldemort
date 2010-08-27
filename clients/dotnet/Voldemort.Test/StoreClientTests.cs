@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
-using Voldemort.Model;
 using System.IO;
 using System.CodeDom;
 using System.CodeDom.Compiler;
@@ -63,8 +62,12 @@ namespace Voldemort.Test
         {
             string[] Names = Enum.GetNames(typeof(Voldemort.AdminRequestType));
 
-            CodeTypeDeclaration typedeclare = new CodeTypeDeclaration("VoldemortAdminClient");
-            typedeclare.IsInterface = true;
+            CodeTypeDeclaration implementation = new CodeTypeDeclaration("VoldemortAdminClient");
+            implementation.IsClass = true;
+            implementation.Attributes = MemberAttributes.Public;
+            CodeTypeDeclaration interfaceType = new CodeTypeDeclaration("IVoldemortAdminClient");
+            interfaceType.IsInterface = true;
+            interfaceType.Attributes = MemberAttributes.Public;
 
             foreach (string Name in Names)
             {
@@ -73,14 +76,31 @@ namespace Voldemort.Test
                     parts[i] = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(parts[i].ToLower());
                 CodeMemberMethod method = new CodeMemberMethod();
                 method.Name = string.Concat(parts);
-                typedeclare.Members.Add(method);
+                interfaceType.Members.Add(method);
+
+                string typeName = string.Format("Voldemort.{0}Request, Voldemort", method.Name);
+
+
+                Type type = Type.GetType(typeName);
+
+                if (null == type)
+                    continue;
+
+                PropertyInfo[] properties = type.GetProperties();
+
+                foreach (PropertyInfo property in properties)
+                {
+                    CodeParameterDeclarationExpression methodParameter = new CodeParameterDeclarationExpression(property.PropertyType, property.Name);
+                    method.Parameters.Add(methodParameter);
+                }
             }
 
             CodeGeneratorOptions options = new CodeGeneratorOptions();
             options.BracingStyle = "C";
-            CSharpCodeProvider csp = new CSharpCodeProvider();
-            csp.GenerateCodeFromType(typedeclare, Console.Out, options);
+            options.BlankLinesBetweenMembers = false;
 
+            CSharpCodeProvider csp = new CSharpCodeProvider();
+            csp.GenerateCodeFromType(interfaceType, Console.Out, options);
         }
     }
 }

@@ -5,19 +5,23 @@ using System.IO;
 
 namespace Voldemort.Protocol
 {
-    abstract class RequestFormat
+    public enum RequestFormatType
     {
-        public enum RequestFormatType
-        {
-            /** The Version 0 native protocol */
-            VOLDEMORT,
-            /** The Version 1 native protocol */
-            VOLDEMORT_V1,
-            /** Protocol buffers */
-            PROTOCOL_BUFFERS,
-            /** Admin request handler protocol */
-            ADMIN_HANDLER
-        };
+        /** The Version 0 native protocol */
+        VOLDEMORT,
+        /** The Version 1 native protocol */
+        VOLDEMORT_V1,
+        /** Protocol buffers */
+        PROTOCOL_BUFFERS,
+        /** Admin request handler protocol */
+        ADMIN_HANDLER
+    };
+
+
+
+    public abstract class RequestFormat
+    {
+
 
         protected void checkThrowError(Error error)
         {

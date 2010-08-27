@@ -11,5 +11,11 @@ namespace Voldemort
         {
 
         }
+
+        public BootstrapFailureException(string s, Exception innerException)
+            : base(s, innerException)
+        {
+
+        }
     }
 }

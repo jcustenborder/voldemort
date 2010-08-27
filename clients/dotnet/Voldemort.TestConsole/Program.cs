@@ -16,23 +16,12 @@ namespace Voldemort.TestConsole
                 return;
             }
 
-            //Console.WriteLine("This is a test");
-            //int a = Console.CursorTop;
-            //int percent = 0;
-            //for (int i = 0; i < 100; i++)
-            //{
-            //    progressBar(percent++, a);
-
-            //    System.Threading.Thread.Sleep(500);
-            //}
-            //clearProgressBar(a);
-
-            const string TESTSTORE = "test";
+            const string TESTSTORE = "wsm.deal";
 
             ClientConfig config = new ClientConfig();
             config.BootstrapUrls.AddRange(args);
             config.ConnectionTimeoutMs = 30 * 1000;
-            config.SocketTimeoutMs = 15 * 1000;
+            config.SocketTimeoutMs = 30 * 1000;
 
 
             Console.WriteLine("BootstrapUrls:");
@@ -42,26 +31,37 @@ namespace Voldemort.TestConsole
                 Console.WriteLine(bootstrapUrl);
             }
 
+            config.BootstrapUrls.Clear();
+            config.BootstrapUrls.Add("tcp://wsm-deb2:6667");
+            config.RequestFormatType = Voldemort.Protocol.RequestFormatType.ADMIN_HANDLER;
+            Voldemort.Protocol.Admin.AdminClient adminclient = new Voldemort.Protocol.Admin.AdminClient("tcp://wsm-deb2:6667", config);
+            Dictionary<string, string> keylist = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            StoreClientFactory factory = new SocketStoreClientFactory(config);
+            for (int i = 0; i < 10; i++)
+            {
+                foreach (Node node in adminclient.Cluster.Servers)
+                {
+                    foreach (byte[] a in adminclient.FetchKeys(node.ID, TESTSTORE, node.GetPartitions(), null, false))
+                    {
+                        string n = Serializers.UTF8Serializer.instance.Deserialize(a);
+
+                        if (keylist.ContainsKey(n))
+                            continue;
+
+                        keylist.Add(n, null);
+                        Console.WriteLine(n);
+                    }
+                }
+            }
+
+            AbstractStoreClientFactory factory = new SocketStoreClientFactory(config);
             
             Console.WriteLine("Testing with Store{0}\t{1}", Environment.NewLine, TESTSTORE);
             
 
             StoreClient client = factory.GetStoreClient(TESTSTORE);
 
-            
-
-            
-
             Random random = new Random();
-            
-
-
-
-
-
-
 
             byte[] key = Encoding.UTF8.GetBytes("test");
             byte[] newValue = new byte[100 * 1024];
@@ -69,9 +69,6 @@ namespace Voldemort.TestConsole
             random.NextBytes(newValue);
 
             client.Put(key, newValue);
-
-            //1266903413697
-            //1268207710770
             
             int[] RequestSizes = new int[] { 1024, 1024 * 10, 1024 * 100, 1024 * 500};
 

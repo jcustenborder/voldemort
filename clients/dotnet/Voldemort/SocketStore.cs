@@ -15,7 +15,7 @@ namespace Voldemort
         public int Port { get; private set; }
         public ClientConfig Config { get; private set; }
         public ConnectionPool Pool { get; private set; }
-        public RequestFormat.RequestFormatType Type { get; private set; }
+        public RequestFormatType Type { get; private set; }
         public bool ShouldReroute { get; private set; }
 
         private RequestFormat request;
@@ -26,7 +26,7 @@ namespace Voldemort
                        int port,
                        ClientConfig config,
                        ConnectionPool connPool,
-                       RequestFormat.RequestFormatType type,
+                       RequestFormatType type,
                        bool shouldReroute)
         {
             if (string.IsNullOrEmpty(storeName)) throw new ArgumentNullException("storeName", "storeName cannot be null.");
