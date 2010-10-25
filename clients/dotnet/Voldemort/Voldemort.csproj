@@ -52,6 +52,7 @@
     <Compile Include="MetadataStore.cs" />
     <Compile Include="Protocol\Admin\AdminClient.cs" />
     <Compile Include="Protocol\AdminHandlerRequestFormat.cs" />
+    <Compile Include="Serializers\NullSerializer.cs" />
     <Compile Include="Serializers\UTF8LowerCaseSerializer.cs" />
     <Compile Include="Transport\Connection.cs" />
     <Compile Include="Transport\ConnectionPool.cs" />
