@@ -47,7 +47,8 @@ namespace Voldemort
 
             if (!result.AsyncWaitHandle.WaitOne(this.Config.ConnectionTimeoutMs, false))
             {
-                throw new TimeoutException();
+                string message = string.Format("Took longer than {0} ms to connect to {1}:{2}", this.Config.ConnectionTimeoutMs, this.Host, this.Port);
+                throw new TimeoutException(message);
             }
 
             this.Socket.EndConnect(result);
@@ -58,7 +59,7 @@ namespace Voldemort
 
             if (buffer[0] != (byte)'o' && buffer[1] != (byte)'k')
             {
-                throw new UnreachableStoreException("Failed to negotiate protocol with server");
+                throw new UnreachableStoreException("Failed to negotiate protocol with server " + this.Host + ":" + this.Port + "/" + this.NegotiationString);
             }
 
             this.Stream = new NetworkStream(this.Socket, FileAccess.ReadWrite);
