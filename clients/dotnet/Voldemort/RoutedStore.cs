@@ -45,13 +45,23 @@ namespace Voldemort
             try
             {
                 result = store.get(key);
-                node.IsAvailable = true; //TODO: Check the cpp source for node and what's it's doing.
+                node.SetAvailable(); //TODO: Check the cpp source for node and what's it's doing.
                 return true;
             }
             catch (UnreachableStoreException ex)
             {
                 if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
-                node.IsAvailable = false;
+                node.SetDown();
+            }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (Exception ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
             }
             finally
             {
@@ -68,13 +78,23 @@ namespace Voldemort
             try
             {
                 result = store.getAll(key);
-                node.IsAvailable = true; //TODO: Check the cpp source for node and what's it's doing.
+                node.SetAvailable(); //TODO: Check the cpp source for node and what's it's doing.
                 return true;
             }
             catch (UnreachableStoreException ex)
             {
-                if (log.IsErrorEnabled) log.Error("Exception while calling store.getAll on " + node, ex);
-                node.IsAvailable = false;
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (Exception ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
             }
             finally
             {
@@ -90,13 +110,23 @@ namespace Voldemort
             try 
             {
                 store.put(key, value);
-                node.IsAvailable=true;
+                node.SetAvailable(); //TODO: Check the cpp source for node and what's it's doing.
                 return true;
-            } 
-            catch (UnreachableStoreException ex) 
+            }
+            catch (UnreachableStoreException ex)
             {
-                if (log.IsErrorEnabled) log.Error("Exception while calling store.put on " + node, ex);
-                node.IsAvailable = false;
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (Exception ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
             }
             finally
             {
@@ -114,13 +144,23 @@ namespace Voldemort
             try
             {
                 result = store.deleteKey(key, version);
-                node.IsAvailable = true;
+                node.SetAvailable(); //TODO: Check the cpp source for node and what's it's doing.
                 return true;
             }
             catch (UnreachableStoreException ex)
             {
-                if (log.IsErrorEnabled) log.Error("Exception while calling store.deleteKey on " + node, ex);
-                node.IsAvailable = false;
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
+            }
+            catch (Exception ex)
+            {
+                if (log.IsErrorEnabled) log.Error("Exception while calling store.get on " + node, ex);
+                node.SetDown();
             }
             finally
             {
@@ -227,62 +267,18 @@ namespace Voldemort
 
         public IList<KeyedVersions> getAll(IEnumerable<byte[]> keys)
         {
-            List<KeyedVersions> result = new List<KeyedVersions>();
-            Dictionary<byte[], IList<Node>> KeysToNodes = new Dictionary<byte[], IList<Node>>(ByteArrayComparer.Instance);
-            Dictionary<Node, IList<byte[]>> NodesToKeys = new Dictionary<Node, IList<byte[]>>(NodeComparer.Instance);
-            Dictionary<byte[], KeyedVersions> Values = new Dictionary<byte[], KeyedVersions>(ByteArrayComparer.Instance);
-
-            foreach (byte[] key in keys)
+            bool status = false;
+            IList<Node> availableNodes = Node.GetAvailableNodes(_cluster.Servers);
+            IList<KeyedVersions> result = null;
+            foreach (Node node in availableNodes)
             {
-                if (KeysToNodes.ContainsKey(key))
-                    continue;
+                status = doGetAllFromStore(keys, node, _clusterMap[node.ID], out result);
 
-                IList<Node> preferredNodes = _routingStrategy.routeRequest(key);
-                foreach (Node node in preferredNodes)
-                {
-                    IList<byte[]> nodeKeys = null;
-                    if (!NodesToKeys.TryGetValue(node, out nodeKeys))
-                    {
-                        nodeKeys = new List<byte[]>();
-                        NodesToKeys.Add(node, nodeKeys);
-                    }
-
-                    nodeKeys.Add(key);
-                }
-
-
-                KeysToNodes.Add(key, preferredNodes);
+                if (status)
+                    return result;
             }
 
-            foreach (KeyValuePair<Node, IList<byte[]>> kvp in NodesToKeys)
-            {
-                IList<KeyedVersions> foundVersions = null;
-                List<byte[]> keysToRequest = new List<byte[]>();
-
-                foreach(byte[] key in keys)
-                {
-                    if(Values.ContainsKey(key))
-                        continue;
-                    keysToRequest.Add(key);
-                }
-
-
-                bool success = doGetAllFromStore(keysToRequest, kvp.Key, _clusterMap[kvp.Key.ID], out foundVersions);
-
-                if (success)
-                {
-                    foreach (KeyedVersions foundversion in foundVersions)
-                    {
-                        if (Values.ContainsKey(foundversion.key))
-                            continue;
-                        Values.Add(foundversion.key, foundversion);
-                    }
-                }
-
-
-            }
-
-            return new List<KeyedVersions>(Values.Values);
+            throw new InsufficientOperationalNodesException("Could not reach any node for get operation");
         }
 
     
