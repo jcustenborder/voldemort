@@ -31,29 +31,6 @@ namespace Voldemort.TestConsole
                 Console.WriteLine(bootstrapUrl);
             }
 
-            config.BootstrapUrls.Clear();
-            config.BootstrapUrls.Add("tcp://wsm-deb2:6667");
-            config.RequestFormatType = Voldemort.Protocol.RequestFormatType.ADMIN_HANDLER;
-            Voldemort.Protocol.Admin.AdminClient adminclient = new Voldemort.Protocol.Admin.AdminClient("tcp://wsm-deb2:6667", config);
-            Dictionary<string, string> keylist = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < 10; i++)
-            {
-                foreach (Node node in adminclient.Cluster.Servers)
-                {
-                    foreach (byte[] a in adminclient.FetchKeys(node.ID, TESTSTORE, node.GetPartitions(), null, false))
-                    {
-                        string n = Serializers.UTF8Serializer.instance.Deserialize(a);
-
-                        if (keylist.ContainsKey(n))
-                            continue;
-
-                        keylist.Add(n, null);
-                        Console.WriteLine(n);
-                    }
-                }
-            }
-
             AbstractStoreClientFactory factory = new SocketStoreClientFactory(config);
             
             Console.WriteLine("Testing with Store{0}\t{1}", Environment.NewLine, TESTSTORE);
