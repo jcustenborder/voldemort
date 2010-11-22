@@ -9,7 +9,7 @@ namespace Voldemort
     {
         public Node()
         {
-            this.IsAvailable = true;
+            this._NodeDown = false;
         }
         private static readonly Logger log = new Logger();
         [XmlElement("id")]
@@ -27,11 +27,43 @@ namespace Voldemort
         [XmlElement("partitions")]
         public string PartitionsValue { get; set; }
 
+        private bool _NodeDown = false;
         [XmlIgnore]
-        public bool IsAvailable { get; set; }
+        public bool IsAvailable
+        {
+            get
+            {
+                if (!_NodeDown)
+                    return true;
+
+                TimeSpan span = DateTime.UtcNow - NodeDownTime;
+
+                if (span > NodeRetyInterval)
+                {
+                    _NodeDown = false;
+                }
+
+                return !_NodeDown;
+            }
+        }
+
+        private static TimeSpan NodeRetyInterval = new TimeSpan(0, 5, 0);
+        private DateTime NodeDownTime = DateTime.MinValue;
 
         [XmlIgnore]
         internal long Requests { get; set; }
+
+        internal void SetDown()
+        {
+            NodeDownTime = DateTime.UtcNow;
+            _NodeDown = true;
+        }
+        internal void SetAvailable()
+        {
+            NodeDownTime = DateTime.MinValue;
+            _NodeDown = false;
+        }
+
 
         public int[] GetPartitions()
         {
@@ -73,8 +105,12 @@ namespace Voldemort
 
             List<Node> availableNodes = new List<Node>();
             foreach (Node node in nodes)
+            {
                 if (node.IsAvailable)
+                {
                     availableNodes.Add(node);
+                }
+            }
 
             return availableNodes;
         }
